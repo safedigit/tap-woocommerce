@@ -244,8 +244,7 @@ def do_discover():
 def main():
     '''Entry point'''
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
-    print("This is v3")
-
+    
     CONFIG.update(args.config)
     STATE = {}
 
