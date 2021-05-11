@@ -103,6 +103,7 @@ def filter_order(order):
         shipping_lines = None
 
     filtered = {
+        "store_url": CONFIG["url"],
         "order_id":int(order["id"]),
         "order_key":str(order["order_key"]),
         "status":str(order["status"]),

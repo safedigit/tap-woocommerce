@@ -1,6 +1,9 @@
 {
     "type": "object",
     "properties": {
+        "store_url": {
+            "type": ["null", "string"]
+        },
         "order_id": {
             "type": ["null", "number"]
         },
