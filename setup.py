@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(
-    name="tap-woocommerce",
+    name="tap-woocommerce-v3",
     version="0.1.2",
     description="Singer.io tap for extracting data",
     author="Stitch",
@@ -10,6 +10,7 @@ setup(
     classifiers=["Programming Language :: Python :: 3 :: Only"],
     py_modules=["tap_woocommerce"],
     install_requires=[
+        'unidecode==1.2.0',
         'attrs==18.1.0',
         'backoff==1.3.2',
         'python-dateutil==2.7.3',
@@ -18,7 +19,7 @@ setup(
     ],
     entry_points="""
     [console_scripts]
-    tap-woocommerce=tap_woocommerce:main
+    tap-woocommerce-v3=tap_woocommerce:main
     """,
     packages=["tap_woocommerce"],
     package_data = {

@@ -6,7 +6,7 @@ import time
 import re
 import json
 import attr
-import urllib
+from unidecode import unidecode
 import requests
 import backoff
 from requests.auth import HTTPBasicAuth
@@ -29,17 +29,19 @@ CONFIG = {
 }
 
 ENDPOINTS = {
-    "orders":"wp-json/wc/v2/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}"
+    "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}"
 }
 
 def get_endpoint(endpoint, kwargs):
     '''Get the full url for the endpoint'''
     if endpoint not in ENDPOINTS:
         raise ValueError("Invalid endpoint {}".format(endpoint))
-    
-    after = urllib.parse.quote(kwargs[0])
+    after = unidecode(kwargs[0])
     page = kwargs[1]
-    return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page)
+    consumer_key=unidecode(kwargs[2]).strip()
+    consumer_secret=unidecode(kwargs[3]).strip()
+
+    return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page,consumer_key,consumer_secret)
 
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
@@ -122,7 +124,7 @@ def giveup(exc):
 @utils.ratelimit(20, 1)
 def gen_request(stream_id, url):
     with metrics.http_request_timer(stream_id) as timer:
-        resp = requests.get(url, auth=HTTPBasicAuth(CONFIG["consumer_key"], CONFIG["consumer_secret"]))
+        resp = requests.get("https://" + url)
         timer.tags[metrics.Tag.http_status_code] = resp.status_code
         resp.raise_for_status()
         return resp.json()
@@ -138,7 +140,7 @@ def sync_orders(STATE, catalog):
     page_number = 1
     with metrics.record_counter("orders") as counter:
         while True:
-            endpoint = get_endpoint("orders", [start, page_number])
+            endpoint = get_endpoint("orders", [start, page_number, CONFIG["consumer_key"], CONFIG["consumer_secret"]])
             LOGGER.info("GET %s", endpoint)
             orders = gen_request("orders",endpoint)
             for order in orders:
@@ -242,6 +244,7 @@ def do_discover():
 def main():
     '''Entry point'''
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
+    print("This is v3")
 
     CONFIG.update(args.config)
     STATE = {}
