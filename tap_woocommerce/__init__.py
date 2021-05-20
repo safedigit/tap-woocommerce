@@ -46,8 +46,8 @@ def get_endpoint(endpoint, kwargs):
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
-        return CONFIG["start_date"]
-    return current_bookmark
+        return parser.parse(CONFIG["start_date"]).isoformat()
+    return parser.parse(current_bookmark).isoformat()
 
 def load_schema(entity):
     '''Returns the schema for the specified source'''
