@@ -16,12 +16,12 @@ from singer import utils
 import datetime
 import dateutil
 from dateutil import parser
+import pendulum
 
 
 REQUIRED_CONFIG_KEYS = ["url", "consumer_key", "consumer_secret", "start_date"]
 REQUEST_USER_AGENT = 'VELOCITY'
 LOGGER = singer.get_logger()
-
 CONFIG = {
     "url": None,
     "consumer_key": None,
@@ -47,8 +47,8 @@ def get_endpoint(endpoint, kwargs):
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
-        return parser.parse(CONFIG["start_date"]).isoformat()
-    return parser.parse(current_bookmark).isoformat()
+        return pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def load_schema(entity):
     '''Returns the schema for the specified source'''

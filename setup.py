@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="tap-woocommerce-v3",
-    version="0.2.4",
+    version="0.2.5",
     description="Singer.io tap for extracting data",
     author="Stitch",
     url="http://singer.io",
@@ -15,6 +15,7 @@ setup(
         'backoff==1.3.2',
         'python-dateutil==2.7.3',
         'requests==2.20.0',
+        "pendulum",
         'singer-python==5.0.15',
     ],
     entry_points="""
