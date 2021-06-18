@@ -19,6 +19,7 @@ from dateutil import parser
 
 
 REQUIRED_CONFIG_KEYS = ["url", "consumer_key", "consumer_secret", "start_date"]
+REQUEST_USER_AGENT = 'VELOCITY'
 LOGGER = singer.get_logger()
 
 CONFIG = {
@@ -125,7 +126,7 @@ def giveup(exc):
 @utils.ratelimit(20, 1)
 def gen_request(stream_id, url):
     with metrics.http_request_timer(stream_id) as timer:
-        resp = requests.get("https://" + url)
+        resp = requests.get("https://" + url, headers= {'User-Agent': REQUEST_USER_AGENT})
         timer.tags[metrics.Tag.http_status_code] = resp.status_code
         resp.raise_for_status()
         return resp.json()

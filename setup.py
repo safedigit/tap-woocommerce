@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="tap-woocommerce-v3",
-    version="0.2.2",
+    version="0.2.4",
     description="Singer.io tap for extracting data",
     author="Stitch",
     url="http://singer.io",
