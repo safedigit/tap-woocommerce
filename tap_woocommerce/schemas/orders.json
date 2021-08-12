@@ -1,109 +1,179 @@
 {
-    "type": "object",
-    "properties": {
-        "store_url": {
-            "type": ["null", "string"]
+  "type": "object",
+  "properties": {
+    "store_url": {
+      "type": ["null", "string"]
+    },
+    "order_id": {
+      "type": ["null", "number"]
+    },
+    "order_key": {
+      "type": ["null", "string"]
+    },
+    "status": {
+      "type": ["null", "string"]
+    },
+    "date_created": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
+    "date_modified": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
+    "date_paid": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
+    "date_completed": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
+    "set_paid": {
+      "type": ["null", "boolean"]
+    },
+    "refunds": {
+      "type": ["null", "object"],
+      "properties": {
+        "id": {
+          "type": ["null", "number"]
         },
-        "order_id": {
-            "type": ["null", "number"]
-        },
-        "order_key": {
-            "type": ["null", "string"]
-        },
-        "status": {
-            "type": ["null", "string"]
-        },
-        "date_created": {
-            "type": ["null", "string"],
-            "format": "date-time"
-        },
-        "date_modified": {
-            "type": ["null", "string"],
-            "format": "date-time"
-        },
-        "discount_total": {
-            "type": ["null", "number"]
-        },
-        "shipping_total":  {
-            "type": ["null", "number"]
+        "reason": {
+          "type": ["null", "string"]
         },
         "total": {
-            "type": ["null", "number"]
-        },
-        "line_items": {
-            "type": ["null", "array"],
-            "items": {
-                "type": ["null", "object"],
-                "properties": {
-                    "id": {
-                        "type": ["null", "number"]
-                    },
-                    "name": {
-                        "type": ["null", "string"]
-                    },
-                    "product_id": {
-                        "type": ["null", "number"]
-                    },
-                    "variation_id":{
-                        "type": ["null", "number"]
-                    },
-                    "quantity": {
-                        "type": ["null", "number"]
-                    },
-                    "subtotal": {
-                        "type": ["null", "number"]
-                    },
-                    "subtotal_tax": {
-                        "type": ["null", "number"]
-                    },
-                    "total": {
-                        "type": ["null", "number"]
-                    },
-                    "sku": {
-                        "type": ["null", "string"]
-                    },
-                    "price": {
-                        "type": ["null", "number"]
-                    }
-                }
-            }
-        },
-        "shipping_lines":{
-            "type":["null","array"],
-            "items":{
-                "type":["null","object"],
-                "properties":{
-                    "id":{
-                        "type":["null","number"]
-                    },
-                    "method_title":{
-                        "type":["null","string"]
-                    },
-                    "method_id":{
-                        "type":["null","string"]
-                    },
-                    "total":{
-                        "type":["null","number"]
-                    }
-                }
-            }
-        },
-        "coupon_lines":{
-            "type":["null","array"],
-            "items":{
-                "type":["null","object"],
-                "properties":{
-                    "id":{
-                        "type":["null","number"]
-                    },
-                    "code":{
-                        "type":["null","string"]
-                    },
-                    "discount":{
-                        "type":["null","number"]
-                    }
-                }
-            }
+          "type": ["null", "string"]
         }
+      }
+    },
+    "discount_total": {
+      "type": ["null", "number"]
+    },
+    "shipping_total": {
+      "type": ["null", "number"]
+    },
+    "shipping_tax": {
+      "type": ["null", "number"]
+    },
+    "card_tax": {
+      "type": ["null", "number"]
+    },
+    "prices_include_tax": {
+      "type": ["null", "boolean"]
+    },
+    "customer_id": {
+      "type": ["null", "string"]
+    },
+    "customer_ip_address": {
+      "type": ["null", "string"]
+    },
+    "customer_user_agent": {
+      "type": ["null", "string"]
+    },
+    "customer_note": {
+      "type": ["null", "string"]
+    },
+    "total": {
+      "type": ["null", "number"]
+    },
+    "payment_method": {
+      "type": ["null", "string"]
+    },
+    "payment_method_title": {
+      "type": ["null", "string"]
+    },
+    "transaction_id": {
+      "type": ["null", "string"]
+    },
+    "line_items": {
+      "type": ["null", "array"],
+      "items": {
+        "type": ["null", "object"],
+        "properties": {
+          "id": {
+            "type": ["null", "number"]
+          },
+          "name": {
+            "type": ["null", "string"]
+          },
+          "product_id": {
+            "type": ["null", "number"]
+          },
+          "variation_id": {
+            "type": ["null", "number"]
+          },
+          "quantity": {
+            "type": ["null", "number"]
+          },
+          "subtotal": {
+            "type": ["null", "number"]
+          },
+          "subtotal_tax": {
+            "type": ["null", "number"]
+          },
+          "total": {
+            "type": ["null", "number"]
+          },
+          "sku": {
+            "type": ["null", "string"]
+          },
+          "price": {
+            "type": ["null", "number"]
+          }
+        }
+      }
+    },
+    "shipping_lines": {
+      "type": ["null", "array"],
+      "items": {
+        "type": ["null", "object"],
+        "properties": {
+          "id": {
+            "type": ["null", "number"]
+          },
+          "method_title": {
+            "type": ["null", "string"]
+          },
+          "method_id": {
+            "type": ["null", "string"]
+          },
+          "total": {
+            "type": ["null", "number"]
+          }
+        }
+      }
+    },
+    "coupon_lines": {
+      "type": ["null", "array"],
+      "items": {
+        "type": ["null", "object"],
+        "properties": {
+          "id": {
+            "type": ["null", "number"]
+          },
+          "code": {
+            "type": ["null", "string"]
+          },
+          "discount": {
+            "type": ["null", "number"]
+          }
+        }
+      }
+    },
+    "number": {
+      "type": ["null", "number"]
+    },
+    "created_via": {
+      "type": ["null", "string"]
+    },
+    "currency": {
+      "type": ["null", "string"]
+    },
+    "total_tax": {
+      "type": ["null", "number"]
+    },
+    "discount_tax": {
+      "type": ["null", "number"]
     }
+  }
 }

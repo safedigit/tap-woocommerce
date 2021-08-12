@@ -30,25 +30,41 @@ CONFIG = {
 }
 
 ENDPOINTS = {
-    "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}"
+    "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}",
+    "reports":"/wp-json/wc/v3/reports/sales?date_min={0}&date_max={1}&consumer_key={2}&consumer_secret={3}"
 }
 
 def get_endpoint(endpoint, kwargs):
     '''Get the full url for the endpoint'''
     if endpoint not in ENDPOINTS:
         raise ValueError("Invalid endpoint {}".format(endpoint))
-    after = unidecode(kwargs[0])
-    page = kwargs[1]
-    consumer_key=unidecode(kwargs[2]).strip()
-    consumer_secret=unidecode(kwargs[3]).strip()
+    if endpoint == "orders":
+        after = unidecode(kwargs[0])
+        page = kwargs[1]
+        consumer_key=unidecode(kwargs[2]).strip()
+        consumer_secret=unidecode(kwargs[3]).strip()
 
-    return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page,consumer_key,consumer_secret)
+        return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page,consumer_key,consumer_secret)
+    else:
+        date_min = unidecode(kwargs[0])
+        date_max = unidecode(kwargs[1])
+        consumer_key=unidecode(kwargs[2]).strip()
+        consumer_secret=unidecode(kwargs[3]).strip()
+
+        return CONFIG["url"]+ENDPOINTS[endpoint].format(date_min,date_max,consumer_key,consumer_secret)    
 
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
         return pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
     return pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+def get_start_for_report(STATE, tap_stream_id, bookmark_key):
+    current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
+    if current_bookmark is None:
+        return pendulum.parse(CONFIG["start_date"]).to_date_string()
+    return pendulum.parse(current_bookmark).to_date_string()
+
 
 def load_schema(entity):
     '''Returns the schema for the specified source'''
@@ -75,7 +91,8 @@ def filter_coupons(coupon):
     filtered = {
         "id":int(coupon["id"]),
         "code":str(coupon["code"]),
-        "discount":float(coupon["discount"])
+        "discount":float(coupon["discount"]),
+        "discount_tax": float(coupon["discount_tax"])
     }
     return filtered
 
@@ -88,6 +105,26 @@ def filter_shipping(ship):
     }
     return filtered
 
+def filter_report_totals(totals, date):
+    return {**totals, "date": date}
+
+def get_last_date(totals, start_date):
+    date = start_date
+    for i in totals:
+       date = (pendulum.parse(date) if pendulum.parse(date) > pendulum.parse(i) else pendulum.parse(i)).to_date_string()
+    return date    
+
+def filter_report(report, start_date):
+    if "totals" in report and len(report["totals"]) > 0:
+        totals = [filter_report_totals(report["totals"][date], date) for date in report["totals"]]
+
+    try:
+        filtered = {**report, "totals": totals, "date_start": start_date, "date_end":start_date, "store_url": CONFIG["url"]}
+    except:
+        filtered = {}
+
+    return filtered    
+
 def filter_order(order):
     tzinfo = parser.parse(CONFIG["start_date"]).tzinfo
     if "line_items" in order and len(order["line_items"])>0:
@@ -98,26 +135,55 @@ def filter_order(order):
         coupon_lines = [filter_coupons(coupon) for coupon in order["coupon_lines"]]
     else:
         coupon_lines = None
-    if "shippng_lines" in order and len(order["shipping_lines"])>0:
+    if "shipping_lines" in order and len(order["shipping_lines"])>0:
         shipping_lines = [filter_shipping(ship) for ship in order["shipping_lines"]]
     else:
         shipping_lines = None
+ 
+    try:
+        filtered = {
+            "number": str(order["number"]),
+            "store_url": CONFIG["url"],
+            "created_via": str(order["created_via"]),
+            "currency": str(order["currency"]),
+            "order_id":int(order["id"]),
+            "order_key":str(order["order_key"]),
+            "total_tax": str(order["total_tax"]),
+            "discount_tax": str(order["discount_tax"]),
+            "discount_total": str(order["discount_total"]),
+            "status":str(order["status"]),
+            "date_created":parser.parse(order["date_created"]).replace(tzinfo=tzinfo).isoformat(),
+            "date_modified":parser.parse(order["date_modified"]).replace(tzinfo=tzinfo).isoformat(),
+            "discount_total":float(order["discount_total"]),
+            "shipping_total":float(order["shipping_total"]),
+            "shipping_tax": float(order["shipping_tax"]),
+            "cart_tax": float(order["cart_tax"]),
+            "prices_include_tax": order["prices_include_tax"],
+            "customer_id": str(order["customer_id"]),
+            "customer_ip_address": str(order["customer_ip_address"]),
+            "customer_user_agent": str(order["customer_user_agent"]),
+            "customer_note": str(order["customer_note"]),
+            "coupon_lines": order["coupon_lines"],
+            "total":float(order["total"]),
+            "payment_method": str(order["payment_method"]),
+            "payment_method_title": str(order["payment_method_title"]),
+            "transaction_id": str(order["transaction_id"]),
+        
+            "shipping_lines": order["shipping_lines"],
+            "line_items":line_items,
+            "fee_lines": order["fee_lines"],
+            "refunds": order["refunds"]
+        }
 
-    filtered = {
-        "store_url": CONFIG["url"],
-        "order_id":int(order["id"]),
-        "order_key":str(order["order_key"]),
-        "total_tax": str(order["total_tax"]),
-        "discount_tax": str(order["discount_tax"]),
-        "discount_total": str(order["discount_total"]),
-        "status":str(order["status"]),
-        "date_created":parser.parse(order["date_created"]).replace(tzinfo=tzinfo).isoformat(),
-        "date_modified":parser.parse(order["date_modified"]).replace(tzinfo=tzinfo).isoformat(),
-        "discount_total":float(order["discount_total"]),
-        "shipping_total":float(order["shipping_total"]),
-        "total":float(order["total"]),
-        "line_items":line_items
-    }
+        if (order["date_completed"]):
+            filtered["date_completed"]  = parser.parse(order["date_completed"]).replace(tzinfo=tzinfo).isoformat()
+        
+        if (order["date_paid"]):
+            filtered["date_paid"]  = parser.parse(order["date_paid"]).replace(tzinfo=tzinfo).isoformat()
+    
+    except:
+        print(e)
+        filtered = {}    
     return filtered
 
 def giveup(exc):
@@ -134,6 +200,11 @@ def gen_request(stream_id, url):
         resp.raise_for_status()
         return resp.json()
 
+def get_end_date(start_date):
+    end_date = pendulum.parse(start_date).add(months=1)
+    if end_date > pendulum.yesterday():
+        end_date = pendulum.yesterday()
+    return end_date.to_date_string()    
 
 def sync_orders(STATE, catalog):
     schema = load_schema("orders")
@@ -163,13 +234,37 @@ def sync_orders(STATE, catalog):
     LOGGER.info("Completed Orders Sync")
     return STATE
 
+def sync_reports(STATE, catalog):
+    schema = load_schema("reports")
+    singer.write_schema("reports", schema, ["store_url"])
+
+    start = get_start_for_report(STATE, "reports", "date_end")
+    LOGGER.info("Only syncing reports updated since " + start)
+    last_update = start
+    with metrics.record_counter("reports") as counter:
+        while True:
+            endpoint = get_endpoint("reports", [last_update, last_update, CONFIG["consumer_key"], CONFIG["consumer_secret"]])
+            LOGGER.info("GET %s", endpoint)
+            report_response = gen_request("reports", endpoint)
+            counter.increment()
+            report = filter_report(report_response[0], last_update)
+            singer.write_record("reports", report)
+            if pendulum.parse(last_update).to_date_string() == pendulum.yesterday().to_date_string():
+                break
+            last_update = pendulum.parse(last_update).add(days=1).to_date_string()
+    STATE = singer.write_bookmark(STATE, 'reports', 'date_end', last_update) 
+    singer.write_state(STATE)
+    LOGGER.info("Completed Reports Sync")
+    return STATE
+
 @attr.s
 class Stream(object):
     tap_stream_id = attr.ib()
     sync = attr.ib()
 
 STREAMS = [
-    Stream("orders", sync_orders)
+    Stream("orders", sync_orders),
+    Stream("reports", sync_reports)
 ]
 
 def get_streams_to_sync(streams, state):
