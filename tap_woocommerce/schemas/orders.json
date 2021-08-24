@@ -73,6 +73,9 @@
     "customer_note": {
       "type": ["null", "string"]
     },
+    "new_customer": {
+      "type": ["null", "boolean"]
+    },
     "total": {
       "type": ["null", "number"]
     },
