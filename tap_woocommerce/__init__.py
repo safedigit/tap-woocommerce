@@ -147,7 +147,7 @@ def filter_order(order):
     else:
         shipping_lines = None
     if "customer_id" in order and order["customer_id"] and order["customer_id"] != 0:
-        endpoint = get_endpoint("cusotmer", [order["customer_id"], CONFIG["consumer_key"], CONFIG["consumer_secret"]])
+        endpoint = get_endpoint("customer", [order["customer_id"], CONFIG["consumer_key"], CONFIG["consumer_secret"]])
         customer = gen_request("customer",endpoint)
         new_customer = False if len(customer) > 1 else True
     else:
@@ -235,7 +235,7 @@ def sync_orders(STATE, catalog):
             for order in orders:
                 counter.increment()
                 order = filter_order(order)
-                if("date_created" in order) and (parser.parse(order["date_created"]) > parser.parse(last_update)):
+                if("date_created" in order) and (parser.parse(order["date_created"]).replace(tzinfo=None) > parser.parse(last_update).replace(tzinfo=None)):
                     last_update = order["date_created"]
                 singer.write_record("orders", order)
             if len(orders) < 100:
