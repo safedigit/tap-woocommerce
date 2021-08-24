@@ -32,7 +32,7 @@ CONFIG = {
 ENDPOINTS = {
     "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}",
     "reports":"/wp-json/wc/v3/reports/sales?date_min={0}&date_max={1}&consumer_key={2}&consumer_secret={3}",
-    "customer":"/wp-json/wc/v3/orders?customer_id={0}&consumer_key={1}&consumer_secret={2}"
+    "customer":"/wp-json/wc/v3/orders?customer={0}&consumer_key={1}&consumer_secret={2}"
 }
 
 def get_endpoint(endpoint, kwargs):
