@@ -31,7 +31,8 @@ CONFIG = {
 
 ENDPOINTS = {
     "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}",
-    "reports":"/wp-json/wc/v3/reports/sales?date_min={0}&date_max={1}&consumer_key={2}&consumer_secret={3}"
+    "reports":"/wp-json/wc/v3/reports/sales?date_min={0}&date_max={1}&consumer_key={2}&consumer_secret={3}",
+    "customer":"/wp-json/wc/v3/orders?customer={0}&consumer_key={1}&consumer_secret={2}"
 }
 
 def get_endpoint(endpoint, kwargs):
@@ -45,6 +46,12 @@ def get_endpoint(endpoint, kwargs):
         consumer_secret=unidecode(kwargs[3]).strip()
 
         return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page,consumer_key,consumer_secret)
+    elif endpoint == "customer":
+        customer_id = kwargs[0]
+        consumer_key=unidecode(kwargs[1]).strip()
+        consumer_secret=unidecode(kwargs[2]).strip()
+
+        return CONFIG["url"]+ENDPOINTS[endpoint].format(customer_id,consumer_key,consumer_secret)
     else:
         date_min = unidecode(kwargs[0])
         date_max = unidecode(kwargs[1])
@@ -56,8 +63,10 @@ def get_endpoint(endpoint, kwargs):
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
-        return pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
-    return pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
+        date = pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
+    else:
+        date = pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return pendulum.parse(date).add(days=-14).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def get_start_for_report(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
@@ -139,7 +148,12 @@ def filter_order(order):
         shipping_lines = [filter_shipping(ship) for ship in order["shipping_lines"]]
     else:
         shipping_lines = None
- 
+    if "customer_id" in order and order["customer_id"] and order["customer_id"] != 0:
+        endpoint = get_endpoint("customer", [order["customer_id"], CONFIG["consumer_key"], CONFIG["consumer_secret"]])
+        customer = gen_request("customer",endpoint)
+        new_customer = False if len(customer) > 1 else True
+    else:
+        new_customer = None
     try:
         filtered = {
             "number": str(order["number"]),
@@ -168,6 +182,7 @@ def filter_order(order):
             "payment_method": str(order["payment_method"]),
             "payment_method_title": str(order["payment_method_title"]),
             "transaction_id": str(order["transaction_id"]),
+            "new_customer": new_customer,
         
             "shipping_lines": order["shipping_lines"],
             "line_items":line_items,
@@ -222,7 +237,7 @@ def sync_orders(STATE, catalog):
             for order in orders:
                 counter.increment()
                 order = filter_order(order)
-                if("date_created" in order) and (parser.parse(order["date_created"]) > parser.parse(last_update)):
+                if("date_created" in order) and (parser.parse(order["date_created"]).replace(tzinfo=None) > parser.parse(last_update).replace(tzinfo=None)):
                     last_update = order["date_created"]
                 singer.write_record("orders", order)
             if len(orders) < 100:
