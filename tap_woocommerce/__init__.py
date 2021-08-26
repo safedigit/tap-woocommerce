@@ -63,8 +63,11 @@ def get_endpoint(endpoint, kwargs):
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
-        return pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
-    return pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
+        date = pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    date = pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    return pendulum.parse(date).add(days=-14).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def get_start_for_report(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
