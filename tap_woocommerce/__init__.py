@@ -9,7 +9,7 @@ import singer.metrics as metrics
 from singer import utils
 from dateutil import parser
 import pendulum
-from api_wrapper import ApiWrapper 
+from tap_woocommerce.api_wrapper import ApiWrapper 
 
 
 

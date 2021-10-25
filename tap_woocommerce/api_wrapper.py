@@ -1,4 +1,3 @@
-from typing import final
 from singer import utils
 import backoff
 import requests
@@ -13,7 +12,7 @@ def _giveup(exc):
         and exc.response.status_code != 429
 
 class ApiWrapper:
-    def __init__(self, url, consumer_key, consumer_secret, **kwargs):
+    def __init__(self, url, consumer_key, consumer_secret):
         self._logger = singer.get_logger()
         self._wcApi = API(url, consumer_key, consumer_secret)
 
