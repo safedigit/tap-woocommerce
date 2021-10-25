@@ -2,21 +2,15 @@
 import itertools
 import os
 import sys
-import time
-import re
 import json
 import attr
-from unidecode import unidecode
-import requests
-import backoff
-from requests.auth import HTTPBasicAuth
 import singer
 import singer.metrics as metrics
 from singer import utils
-import datetime
-import dateutil
 from dateutil import parser
 import pendulum
+from api_wrapper import ApiWrapper 
+
 
 
 REQUIRED_CONFIG_KEYS = ["url", "consumer_key", "consumer_secret", "start_date"]
@@ -28,37 +22,7 @@ CONFIG = {
     "consumer_secret": None,
     "start_date":None
 }
-
-ENDPOINTS = {
-    "orders":"/wp-json/wc/v3/orders?after={0}&orderby=date&order=asc&per_page=100&page={1}&consumer_key={2}&consumer_secret={3}",
-    "reports":"/wp-json/wc/v3/reports/sales?date_min={0}&date_max={1}&consumer_key={2}&consumer_secret={3}",
-    "customer":"/wp-json/wc/v3/orders?customer={0}&consumer_key={1}&consumer_secret={2}"
-}
-
-def get_endpoint(endpoint, kwargs):
-    '''Get the full url for the endpoint'''
-    if endpoint not in ENDPOINTS:
-        raise ValueError("Invalid endpoint {}".format(endpoint))
-    if endpoint == "orders":
-        after = unidecode(kwargs[0])
-        page = kwargs[1]
-        consumer_key=unidecode(kwargs[2]).strip()
-        consumer_secret=unidecode(kwargs[3]).strip()
-
-        return CONFIG["url"]+ENDPOINTS[endpoint].format(after,page,consumer_key,consumer_secret)
-    elif endpoint == "customer":
-        customer_id = kwargs[0]
-        consumer_key=unidecode(kwargs[1]).strip()
-        consumer_secret=unidecode(kwargs[2]).strip()
-
-        return CONFIG["url"]+ENDPOINTS[endpoint].format(customer_id,consumer_key,consumer_secret)
-    else:
-        date_min = unidecode(kwargs[0])
-        date_max = unidecode(kwargs[1])
-        consumer_key=unidecode(kwargs[2]).strip()
-        consumer_secret=unidecode(kwargs[3]).strip()
-
-        return CONFIG["url"]+ENDPOINTS[endpoint].format(date_min,date_max,consumer_key,consumer_secret)    
+_api_wrapper = None
 
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
@@ -149,8 +113,10 @@ def filter_order(order):
     else:
         shipping_lines = None
     if "customer_id" in order and order["customer_id"] and order["customer_id"] != 0:
-        endpoint = get_endpoint("customer", [order["customer_id"], CONFIG["consumer_key"], CONFIG["consumer_secret"]])
-        customer = gen_request("customer",endpoint)
+        params={
+            "customer": order["customer_id"]
+        }
+        customer = _api_wrapper.orders(params)        
         new_customer = False if len(customer) > 1 else True
     else:
         new_customer = None
@@ -206,15 +172,6 @@ def giveup(exc):
         and 400 <= exc.response.status_code < 500 \
         and exc.response.status_code != 429
 
-@utils.backoff((backoff.expo,requests.exceptions.RequestException), giveup)
-@utils.ratelimit(20, 1)
-def gen_request(stream_id, url):
-    with metrics.http_request_timer(stream_id) as timer:
-        resp = requests.get("https://" + url, headers= {'User-Agent': REQUEST_USER_AGENT})
-        timer.tags[metrics.Tag.http_status_code] = resp.status_code
-        resp.raise_for_status()
-        return resp.json()
-
 def get_end_date(start_date):
     end_date = pendulum.parse(start_date).add(months=1)
     if end_date > pendulum.yesterday():
@@ -229,11 +186,17 @@ def sync_orders(STATE, catalog):
     LOGGER.info("Only syncing orders updated since " + start)
     last_update = start
     page_number = 1
-    with metrics.record_counter("orders") as counter:
+    with metrics.record_counter("orders") as counter:        
+        params={
+            "after":last_update,
+            "orderby":"date",
+            "order":"asc",
+            "per_page":"100",
+            "page":page_number
+        }
         while True:
-            endpoint = get_endpoint("orders", [start, page_number, CONFIG["consumer_key"], CONFIG["consumer_secret"]])
-            LOGGER.info("GET %s", endpoint)
-            orders = gen_request("orders",endpoint)
+            orders = _api_wrapper.orders(params)
+            
             for order in orders:
                 counter.increment()
                 order = filter_order(order)
@@ -258,9 +221,7 @@ def sync_reports(STATE, catalog):
     last_update = start
     with metrics.record_counter("reports") as counter:
         while True:
-            endpoint = get_endpoint("reports", [last_update, last_update, CONFIG["consumer_key"], CONFIG["consumer_secret"]])
-            LOGGER.info("GET %s", endpoint)
-            report_response = gen_request("reports", endpoint)
+            report_response = _api_wrapper.reports(last_update, last_update)
             counter.increment()
             report = filter_report(report_response[0], last_update)
             singer.write_record("reports", report)
@@ -361,6 +322,8 @@ def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     
     CONFIG.update(args.config)
+    global _api_wrapper
+    _api_wrapper = ApiWrapper(CONFIG["url"], CONFIG["consumer_key"], CONFIG["consumer_secret"])
     STATE = {}
 
     if args.state:

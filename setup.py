@@ -10,13 +10,12 @@ setup(
     classifiers=["Programming Language :: Python :: 3 :: Only"],
     py_modules=["tap_woocommerce"],
     install_requires=[
-        'unidecode==1.2.0',
         'attrs==18.1.0',
         'backoff==1.3.2',
         'python-dateutil==2.7.3',
-        'requests==2.20.0',
         "pendulum",
         'singer-python==5.0.15',
+        'woocommerce==3.0.0'
     ],
     entry_points="""
     [console_scripts]

@@ -33,7 +33,7 @@
       "type": ["null", "boolean"]
     },
     "refunds": {
-      "type": ["null", "object"],
+      "type": ["null", "object", "array"],
       "properties": {
         "id": {
           "type": ["null", "number"]
