@@ -11,8 +11,6 @@ from dateutil import parser
 import pendulum
 from tap_woocommerce.api_wrapper import ApiWrapper 
 
-
-
 REQUIRED_CONFIG_KEYS = ["url", "consumer_key", "consumer_secret", "start_date"]
 REQUEST_USER_AGENT = 'VELOCITY'
 LOGGER = singer.get_logger()
@@ -27,10 +25,10 @@ _api_wrapper = None
 def get_start(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
     if current_bookmark is None:
-        date = pendulum.parse(CONFIG["start_date"]).strftime('%Y-%m-%dT%H:%M:%SZ')
+        date = pendulum.parse(CONFIG["start_date"])
     else:
-        date = pendulum.parse(current_bookmark).strftime('%Y-%m-%dT%H:%M:%SZ')
-    return pendulum.parse(date).add(days=-14).strftime('%Y-%m-%dT%H:%M:%SZ')
+        date = pendulum.parse(current_bookmark)
+    return date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def get_start_for_report(STATE, tap_stream_id, bookmark_key):
     current_bookmark = singer.get_bookmark(STATE, tap_stream_id, bookmark_key)
@@ -122,15 +120,15 @@ def filter_order(order):
         new_customer = None
     try:
         filtered = {
-            "number": str(order["number"]),
+            "number": int(order["number"]),
             "store_url": CONFIG["url"],
             "created_via": str(order["created_via"]),
             "currency": str(order["currency"]),
             "order_id":int(order["id"]),
             "order_key":str(order["order_key"]),
-            "total_tax": str(order["total_tax"]),
-            "discount_tax": str(order["discount_tax"]),
-            "discount_total": str(order["discount_total"]),
+            "total_tax": float(order["total_tax"]),
+            "discount_tax": float(order["discount_tax"]),
+            "discount_total": float(order["discount_total"]),
             "status":str(order["status"]),
             "date_created":parser.parse(order["date_created"]).replace(tzinfo=tzinfo).isoformat(),
             "date_modified":parser.parse(order["date_modified"]).replace(tzinfo=tzinfo).isoformat(),
@@ -153,7 +151,8 @@ def filter_order(order):
             "shipping_lines": order["shipping_lines"],
             "line_items":line_items,
             "fee_lines": order["fee_lines"],
-            "refunds": order["refunds"]
+            "refunds": order["refunds"],
+            "shipping": order["shipping"]
         }
 
         if (order["date_completed"]):
