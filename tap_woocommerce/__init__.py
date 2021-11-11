@@ -152,7 +152,8 @@ def filter_order(order):
             "line_items":line_items,
             "fee_lines": order["fee_lines"],
             "refunds": order["refunds"],
-            "shipping": order["shipping"]
+            "shipping": order["shipping"],
+            "_links": order["_links"]
         }
 
         if (order["date_completed"]):
